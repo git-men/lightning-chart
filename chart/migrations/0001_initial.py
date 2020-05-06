@@ -108,4 +108,5 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': '图表模板',
             },
         ),
+
     ]
