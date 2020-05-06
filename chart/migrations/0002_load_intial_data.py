@@ -20,7 +20,6 @@ def load_fixture(apps, schema_editor):
     fixture.close()
 
 def unload_fixture(apps, schema_editor):
-    "Brutally deleting all entries for this model..."
 
     MyModel = apps.get_model("chart", "ChartTemplate")
     MyModel.objects.all().delete()
