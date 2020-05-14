@@ -1,14 +1,21 @@
 from django.db import models
-from api_basebone.core.fields import JSONField
+from api_basebone.core.fields import JSONField, BoneImageUrlField
 
 
-# Create your models here.
+class ChartTemplate(models.Model):
+    name = models.CharField(verbose_name='名称', max_length=200, default='')
+    image = BoneImageUrlField(verbose_name='示例')
+
+    class Meta:
+        verbose_name = '图表模板'
+        verbose_name_plural = '图表模板'
 
 
 class MetricTemplate(models.Model):
     display_name = models.CharField(verbose_name='显示名称', max_length=30)
     name = models.CharField(verbose_name='名称', max_length=20)
     geom = JSONField(verbose_name='geom')
+    template = models.ForeignKey(ChartTemplate, verbose_name='模板', related_name='metrics', on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = '指标模板'
@@ -18,21 +25,11 @@ class MetricTemplate(models.Model):
 class DimensionTemplate(models.Model):
     display_name = models.CharField(verbose_name='显示名称', max_length=30)
     name = models.CharField(verbose_name='名称', max_length=20)
+    template = models.ForeignKey(ChartTemplate, verbose_name='模板', related_name='dimensions', on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = '维度模板'
         verbose_name_plural = '维度模板'
-
-
-class ChartTemplate(models.Model):
-    name = models.CharField(verbose_name='名称', max_length=200, default='')
-    image = models.URLField(verbose_name='示例')
-    metrics = models.ManyToManyField(verbose_name='指标', to=MetricTemplate)
-    dimensions = models.ManyToManyField(verbose_name='指标', to=DimensionTemplate)
-
-    class Meta:
-        verbose_name = '图表模板'
-        verbose_name_plural = '图表模板'
 
 
 class Chart(models.Model):
