@@ -12,8 +12,8 @@ class ChartTemplate(models.Model):
 
 
 class MetricTemplate(models.Model):
-    display_name = models.CharField(verbose_name='显示名称', max_length=30)
     name = models.CharField(verbose_name='名称', max_length=20)
+    display_name = models.CharField(verbose_name='显示名称', max_length=30)
     geom = JSONField(verbose_name='geom')
     template = models.ForeignKey(ChartTemplate, verbose_name='模板', related_name='metrics', on_delete=models.CASCADE)
 
@@ -23,8 +23,9 @@ class MetricTemplate(models.Model):
 
 
 class DimensionTemplate(models.Model):
-    display_name = models.CharField(verbose_name='显示名称', max_length=30)
     name = models.CharField(verbose_name='名称', max_length=20)
+    display_name = models.CharField(verbose_name='显示名称', max_length=30)
+    required = models.BooleanField('必填', default=True)
     template = models.ForeignKey(ChartTemplate, verbose_name='模板', related_name='dimensions', on_delete=models.CASCADE)
 
     class Meta:
