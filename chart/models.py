@@ -57,7 +57,7 @@ class Chart(models.Model):
             arg = metric_args[metric.name]
             metric.field = arg.field
             metric.method = arg.method
-            metric.geom = arg.geom
+            metric.geom = arg.template.geom
             # TODO metric.display_name = ...
 
         delete_list = [metric for name, metric in metrics.items() if name in delete_keys]
@@ -74,7 +74,7 @@ class Chart(models.Model):
 
         Metric.objects.bulk_create(create_list)
         Metric.objects.bulk_update(update_list, fields=['field', 'method', 'geom', 'display_name'])
-        Metric.objects.filter(id__in=delete_list).delete()
+        Metric.objects.filter(id__in=[d.id for d in delete_list]).delete()
 
     def gen_dimensions(self):
         if not self.template:
@@ -106,7 +106,7 @@ class Chart(models.Model):
 
         Dimension.objects.bulk_create(create_list)
         Dimension.objects.bulk_update(update_list, fields=['field', 'method', 'display_name'])
-        Dimension.objects.filter(id__in=delete_list).delete()
+        Dimension.objects.filter(id__in=[d.id for d in delete_list]).delete()
 
 
 class Metric(models.Model):
@@ -115,7 +115,7 @@ class Metric(models.Model):
     display_name = models.CharField(verbose_name='指标显示名称', max_length=30)
     name = models.CharField(verbose_name='指标名', max_length=20)
     field = models.CharField(verbose_name='字段', max_length=30)
-    method = models.CharField(verbose_name='聚合函数', max_length=20)
+    method = models.CharField(verbose_name='聚合函数', max_length=20, null=True, blank=True)
     geom = JSONField(verbose_name='geom')
 
     class Meta:
@@ -127,12 +127,12 @@ class MetricArgs(models.Model):
     chart = models.ForeignKey(Chart, on_delete=models.CASCADE, verbose_name='图表', related_name='metric_args')
     template = models.ForeignKey(MetricTemplate, on_delete=models.CASCADE, verbose_name='指标模板', related_name='args')
     field = models.CharField(verbose_name='字段', max_length=30)
-    method = models.CharField(verbose_name='聚合函数', max_length=20)
+    method = models.CharField(verbose_name='聚合函数', max_length=20, null=True, blank=True)
 
     class Meta:
         verbose_name = '指标参数'
         verbose_name_plural = verbose_name
-        unique_together = ('chart', 'template')
+        # unique_together = ('chart', 'template')
 
 
 class Dimension(models.Model):
@@ -141,7 +141,7 @@ class Dimension(models.Model):
     display_name = models.CharField(verbose_name='维度显示名称', max_length=30)
     name = models.CharField(verbose_name='维度名', max_length=20)
     field = models.CharField(verbose_name='字段', max_length=30)
-    method = models.CharField(verbose_name='统计精度函数（当field类型时时间时会有）', max_length=20, blank=True)
+    method = models.CharField(verbose_name='统计精度函数（当field类型时时间时会有）', max_length=20, blank=True, null=True)
 
     class Meta:
         verbose_name = '维度'
@@ -152,12 +152,12 @@ class DimensionArgs(models.Model):
     chart = models.ForeignKey(Chart, on_delete=models.CASCADE, verbose_name='图表', related_name='dimension_args')
     template = models.ForeignKey(DimensionTemplate, on_delete=models.CASCADE, verbose_name='维度模板', related_name='args')
     field = models.CharField(verbose_name='字段', max_length=30)
-    method = models.CharField(verbose_name='聚合函数', max_length=20, blank=True)
+    method = models.CharField(verbose_name='聚合函数', max_length=20, blank=True, null=True)
 
     class Meta:
         verbose_name = '指标参数'
         verbose_name_plural = verbose_name
-        unique_together = ('chart', 'template')
+        # unique_together = ('chart', 'template')
 
 
 class Filter(models.Model):
