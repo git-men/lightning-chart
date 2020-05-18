@@ -57,23 +57,24 @@ class Chart(models.Model):
             arg = metric_args[metric.name]
             metric.field = arg.field
             metric.method = arg.method
+            metric.display_name = arg.display_name
+            metric.format = arg.format
             metric.geom = arg.template.geom
-            # TODO metric.display_name = ...
 
         delete_list = [metric for name, metric in metrics.items() if name in delete_keys]
 
         create_list = [Metric(
             field=arg.field,
             method=arg.method,
+            format=arg.format,
             name=arg.template.name,
             geom=arg.template.geom,
-            # TODO
-            display_name=arg.field,
+            display_name=arg.display_name,
             chart=self,
         ) for name, arg in metric_args.items() if name in create_keys]
 
         Metric.objects.bulk_create(create_list)
-        Metric.objects.bulk_update(update_list, fields=['field', 'method', 'geom', 'display_name'])
+        Metric.objects.bulk_update(update_list, fields=['field', 'method', 'geom', 'display_name', 'format'])
         Metric.objects.filter(id__in=[d.id for d in delete_list]).delete()
 
     def gen_dimensions(self):
@@ -91,7 +92,7 @@ class Chart(models.Model):
             arg = dimension_args[dimension.name]
             dimension.field = arg.field
             dimension.method = arg.method
-            # TODO dimension.display_name = ...
+            dimension.display_name = arg.display_name
 
         delete_list = [dimension for name, dimension in dimensions.items() if name in delete_keys]
 
@@ -99,8 +100,7 @@ class Chart(models.Model):
             field=arg.field,
             method=arg.method,
             name=arg.template.name,
-            # TODO
-            display_name=arg.field,
+            display_name=arg.display_name,
             chart=self,
         ) for name, arg in dimension_args.items() if name in create_keys]
 
@@ -112,10 +112,11 @@ class Chart(models.Model):
 class Metric(models.Model):
     chart = models.ForeignKey(Chart, on_delete=models.CASCADE, verbose_name='图表',
                               related_name='metrics')
-    display_name = models.CharField(verbose_name='指标显示名称', max_length=30)
+    display_name = models.CharField(verbose_name='指标名称', max_length=30)
     name = models.CharField(verbose_name='指标名', max_length=20)
     field = models.CharField(verbose_name='字段', max_length=30)
     method = models.CharField(verbose_name='聚合函数', max_length=20, null=True, blank=True)
+    format = models.CharField(verbose_name='格式', max_length=50, default='{}')
     geom = JSONField(verbose_name='geom')
 
     class Meta:
@@ -128,6 +129,8 @@ class MetricArgs(models.Model):
     template = models.ForeignKey(MetricTemplate, on_delete=models.CASCADE, verbose_name='指标模板', related_name='args')
     field = models.CharField(verbose_name='字段', max_length=30)
     method = models.CharField(verbose_name='聚合函数', max_length=20, null=True, blank=True)
+    format = models.CharField(verbose_name='格式', max_length=50, default='{}')
+    display_name = models.CharField(verbose_name='指标名称', max_length=30)
 
     class Meta:
         verbose_name = '指标参数'
@@ -138,7 +141,7 @@ class MetricArgs(models.Model):
 class Dimension(models.Model):
     chart = models.ForeignKey(Chart, on_delete=models.CASCADE, verbose_name='图表',
                               related_name='dimensions')
-    display_name = models.CharField(verbose_name='维度显示名称', max_length=30)
+    display_name = models.CharField(verbose_name='维度名称', max_length=30)
     name = models.CharField(verbose_name='维度名', max_length=20)
     field = models.CharField(verbose_name='字段', max_length=30)
     method = models.CharField(verbose_name='统计精度函数（当field类型时时间时会有）', max_length=20, blank=True, null=True)
@@ -153,6 +156,7 @@ class DimensionArgs(models.Model):
     template = models.ForeignKey(DimensionTemplate, on_delete=models.CASCADE, verbose_name='维度模板', related_name='args')
     field = models.CharField(verbose_name='字段', max_length=30)
     method = models.CharField(verbose_name='聚合函数', max_length=20, blank=True, null=True)
+    display_name = models.CharField(verbose_name='维度名称', max_length=30)
 
     class Meta:
         verbose_name = '指标参数'
