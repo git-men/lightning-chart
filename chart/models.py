@@ -114,7 +114,7 @@ class Metric(models.Model):
                               related_name='metrics')
     display_name = models.CharField(verbose_name='指标名称', max_length=30)
     name = models.CharField(verbose_name='指标名', max_length=20)
-    field = models.CharField(verbose_name='字段', max_length=100)
+    field = models.CharField(verbose_name='字段', max_length=30)
     method = models.CharField(verbose_name='聚合函数', max_length=20, null=True, blank=True)
     format = models.CharField(verbose_name='格式', max_length=50, default='{}')
     geom = JSONField(verbose_name='geom')
@@ -127,7 +127,7 @@ class Metric(models.Model):
 class MetricArgs(models.Model):
     chart = models.ForeignKey(Chart, on_delete=models.CASCADE, verbose_name='图表', related_name='metric_args')
     template = models.ForeignKey(MetricTemplate, on_delete=models.CASCADE, verbose_name='指标模板', related_name='args')
-    field = models.CharField(verbose_name='字段', max_length=100)
+    field = models.CharField(verbose_name='字段', max_length=30)
     method = models.CharField(verbose_name='聚合函数', max_length=20, null=True, blank=True)
     format = models.CharField(verbose_name='格式', max_length=50, default='{}')
     display_name = models.CharField(verbose_name='指标名称', max_length=30)
@@ -143,7 +143,7 @@ class Dimension(models.Model):
                               related_name='dimensions')
     display_name = models.CharField(verbose_name='维度名称', max_length=30)
     name = models.CharField(verbose_name='维度名', max_length=20)
-    field = models.CharField(verbose_name='字段', max_length=100)
+    field = models.CharField(verbose_name='字段', max_length=30)
     method = models.CharField(verbose_name='统计精度函数（当field类型时时间时会有）', max_length=20, blank=True, null=True)
 
     class Meta:
@@ -154,7 +154,7 @@ class Dimension(models.Model):
 class DimensionArgs(models.Model):
     chart = models.ForeignKey(Chart, on_delete=models.CASCADE, verbose_name='图表', related_name='dimension_args')
     template = models.ForeignKey(DimensionTemplate, on_delete=models.CASCADE, verbose_name='维度模板', related_name='args')
-    field = models.CharField(verbose_name='字段', max_length=100)
+    field = models.CharField(verbose_name='字段', max_length=30)
     method = models.CharField(verbose_name='聚合函数', max_length=20, blank=True, null=True)
     display_name = models.CharField(verbose_name='维度名称', max_length=30)
 
@@ -175,7 +175,7 @@ class Filter(models.Model):
     parent = models.ForeignKey(
         'self', models.CASCADE, null=True, verbose_name='parent', related_name="children"
     )
-    field = models.CharField(verbose_name='字段', max_length=100)
+    field = models.CharField(verbose_name='字段', max_length=30)
     operator = models.CharField('条件判断符', max_length=20)
     value = models.CharField('条件值', max_length=100)
     layer = models.IntegerField('嵌套层数', default=0)
