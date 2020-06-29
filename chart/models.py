@@ -35,7 +35,7 @@ from api_basebone.core.fields import JSONField, BoneImageUrlField
 
 class Chart(models.Model):
     SORT_ASCE= 'asce'
-    SORT_DESC = 'dest'
+    SORT_DESC = 'desc'
     SORT_TYPE_CHOICES = (
         (SORT_ASCE, '升序'),
         (SORT_DESC, '降序')
