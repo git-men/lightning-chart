@@ -34,10 +34,18 @@ from api_basebone.core.fields import JSONField, BoneImageUrlField
 
 
 class Chart(models.Model):
+    SORT_ASCE= 'asce'
+    SORT_DESC = 'dest'
+    SORT_TYPE_CHOICES = (
+        (SORT_ASCE, '升序'),
+        (SORT_DESC, '降序')
+    )
     template_name = models.CharField('模板', max_length=100, null=True, blank=True)
     name = models.CharField(verbose_name='名称', max_length=200, default='')
     model = models.CharField(verbose_name='模型', max_length=200)
-
+    sort_type = models.CharField('排序类型', max_length=50, choices=SORT_TYPE_CHOICES, default=None, null=True, blank=True)
+    sort_keys = JSONField(verbose_name='排序字段', default=[])
+    top_max = models.PositiveIntegerField('显示前几条', default=None, null=True)
     # def gen_by_args(self):
     #     self.gen_metrics()
     #     self.gen_dimensions()
