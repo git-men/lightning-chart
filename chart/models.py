@@ -116,6 +116,7 @@ class Metric(models.Model):
     display_name = models.CharField(verbose_name='指标名称', max_length=30)
     name = models.CharField(verbose_name='指标名', max_length=20)
     field = models.CharField(verbose_name='字段', max_length=100)
+    expression = models.CharField(verbose_name='表达式', max_length=500, null=True, blank=True)
     method = models.CharField(verbose_name='聚合函数', max_length=20, null=True, blank=True)
     format = models.CharField(verbose_name='格式', max_length=50, default='{}')
     geom = JSONField(verbose_name='geom')
@@ -145,6 +146,7 @@ class Dimension(models.Model):
     display_name = models.CharField(verbose_name='维度名称', max_length=30)
     name = models.CharField(verbose_name='维度名', max_length=20)
     field = models.CharField(verbose_name='字段', max_length=100)
+    expression = models.CharField(verbose_name='表达式', max_length=500, null=True, blank=True)
     method = models.CharField(verbose_name='统计精度函数（当field类型时时间时会有）', max_length=20, blank=True, null=True)
 
     class Meta:
