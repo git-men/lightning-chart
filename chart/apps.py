@@ -6,3 +6,4 @@ class ChartConfig(AppConfig):
 
     def ready(self):
         from . import signals
+        import chart.bsm.functions

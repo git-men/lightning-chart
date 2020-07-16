@@ -111,12 +111,15 @@ class Chart(models.Model):
 
 
 class Metric(models.Model):
-    chart = models.ForeignKey(Chart, on_delete=models.CASCADE, verbose_name='图表',
-                              related_name='metrics')
+    chart = models.ForeignKey(
+        Chart, on_delete=models.CASCADE, verbose_name='图表', related_name='metrics'
+    )
     display_name = models.CharField(verbose_name='指标名称', max_length=30)
     name = models.CharField(verbose_name='指标名', max_length=20)
     field = models.CharField(verbose_name='字段', max_length=100)
-    expression = models.CharField(verbose_name='表达式', max_length=500, null=True, blank=True)
+    expression = models.CharField(
+        verbose_name='表达式', max_length=500, null=True, blank=True
+    )
     method = models.CharField(verbose_name='聚合函数', max_length=20, null=True, blank=True)
     format = models.CharField(verbose_name='格式', max_length=50, default='{}')
     geom = JSONField(verbose_name='geom')
@@ -141,13 +144,18 @@ class Metric(models.Model):
 
 
 class Dimension(models.Model):
-    chart = models.ForeignKey(Chart, on_delete=models.CASCADE, verbose_name='图表',
-                              related_name='dimensions')
+    chart = models.ForeignKey(
+        Chart, on_delete=models.CASCADE, verbose_name='图表', related_name='dimensions'
+    )
     display_name = models.CharField(verbose_name='维度名称', max_length=30)
     name = models.CharField(verbose_name='维度名', max_length=20)
     field = models.CharField(verbose_name='字段', max_length=100)
-    expression = models.CharField(verbose_name='表达式', max_length=500, null=True, blank=True)
-    method = models.CharField(verbose_name='统计精度函数（当field类型时时间时会有）', max_length=20, blank=True, null=True)
+    expression = models.CharField(
+        verbose_name='表达式', max_length=500, null=True, blank=True
+    )
+    method = models.CharField(
+        verbose_name='统计精度函数（当field类型时时间时会有）', max_length=20, blank=True, null=True
+    )
 
     class Meta:
         verbose_name = '维度'
@@ -171,10 +179,12 @@ class Filter(models.Model):
     TYPE_CONTAINER = 0
     TYPE_CONDITION = 1
 
-    chart = models.ForeignKey(Chart, on_delete=models.CASCADE, verbose_name='图表',
-                              related_name='chart_filters')
-    type = models.IntegerField('条件类型',
-                             choices=((TYPE_CONTAINER, '容器'), (TYPE_CONDITION, '单一条件')))
+    chart = models.ForeignKey(
+        Chart, on_delete=models.CASCADE, verbose_name='图表', related_name='chart_filters'
+    )
+    type = models.IntegerField(
+        '条件类型', choices=((TYPE_CONTAINER, '容器'), (TYPE_CONDITION, '单一条件'))
+    )
     parent = models.ForeignKey(
         'self', models.CASCADE, null=True, verbose_name='parent', related_name="children"
     )
