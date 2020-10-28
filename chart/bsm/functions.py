@@ -1,10 +1,18 @@
 import logging
+import pytz
+from functools import partial
 
+from django.apps import apps
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
+from django.db.models.functions import TruncDay, TruncMonth, TruncHour
+from django.db.models import Sum, Count, F, Avg, Max, Min
 
+from api_basebone.restful.serializers import get_model_exclude_fields
+from api_basebone.utils.operators import build_filter_conditions2
+from api_basebone.services.expresstion import resolve_expression
 from api_basebone.drf.response import success_response
 from api_basebone.restful.funcs import bsm_func
 from api_basebone.core import exceptions
@@ -16,8 +24,88 @@ from guardian.models import UserObjectPermission
 log = logging.getLogger(__name__)
 
 
-@bsm_func(login_required=True, name='get_chart', model=Chart)
-def get_chart(user, id, **kwargs):
+def group_statistics_data(fields, group_kwargs, model, *args, **kwargs):
+    """
+    分组统计
+    """
+    methods = {
+        'sum': Sum,
+        'Sum': Sum,
+        'count': Count,
+        'Count': Count,
+        'Avg': Avg,
+        'Max': Max,
+        'Min': Min,
+        None: F,
+    }
+    log.debug(f'static parameters, fields: {fields}, groups: {group_kwargs}')
+    queryset = (
+        model.objects.all().annotate(**group_kwargs).values(*group_kwargs.keys())
+    )
+    result = queryset.annotate(
+        **{
+            key: methods[value.get('method', None)](
+                value['field'].replace('.', '__'),
+                distinct=value.get('distinct', False),
+            )
+            for key, value in fields.items()
+            # 排除exclude_fields
+            if value['field'] not in get_model_exclude_fields(model, None)
+        }
+    ).order_by(*group_kwargs.keys())
+    # 支持排序
+    sort_keys = kwargs.get('sort_keys', [])
+    top_max = kwargs.get('top_max', None)
+    SORT_ASCE = 'asce'
+    SORT_DESC = 'desc'
+    all_keys = list(fields.keys()) + list(group_kwargs.keys())
+    if sort_keys:
+        import re
+
+        keys_set = set([re.sub(r'-', "", key) for key in sort_keys])
+        if not (keys_set & set(all_keys) == keys_set):
+            pass
+        result = result.order_by(*sort_keys)
+    # 支持对聚合后的数据进行filter
+    filters = kwargs.get('filters', [])
+    if filters:
+        con = build_filter_conditions2(filters)
+        result = result.filter(con)
+    # 筛选前N条
+    if top_max:
+        result = result[:top_max]
+    # TODO 考虑使用DRF来序列化查询结果
+
+    return result
+
+
+def get_group_data(group):
+    group_functions = {
+        'TruncDay': partial(TruncDay, tzinfo=pytz.UTC),
+        'TruncMonth': partial(TruncMonth, tzinfo=pytz.UTC),
+        'TruncHour': partial(TruncHour, tzinfo=pytz.UTC),
+        None: F,
+    }
+
+    # TODO 解决重名的方法，例如供应商名称传过来的是'agency.name'，那么SQL应该同时group by agency_id 和 agency__name，而不单单是agency__name
+    # 支持一下使用计算字段作为
+    data = {}
+    for k, v in group.items():
+        if v['expression']:
+            expression = resolve_expression(v['expression'])
+            log.debug(
+                f'expression before: {v["expression"]} after resolve: {expression}'
+            )
+            data[k] = expression
+        else:
+            data[k] = group_functions[v.get('method', None)](
+                v['field'].replace('.', '__')
+            )
+
+    return data
+
+
+def get_chart(id):
     """获取图表数据
 
     Params:
@@ -33,8 +121,6 @@ def get_chart(user, id, **kwargs):
         ).get(id=id)
         cache.set(f'chart_config:{id}', chart, 600)
         log.debug('cached Chart')
-
-    self = kwargs.get('view_context')['view']
 
     group = {}
     fields = {}
@@ -61,19 +147,25 @@ def get_chart(user, id, **kwargs):
         }
         fields[metric.name] = field
 
-    group_kwargs = self.get_group_data(group)
+    group_kwargs = get_group_data(group)
     filters = [
         {'field': ft.field, 'operator': ft.operator, 'value': ft.value}
         for ft in chart.chart_filters.all()
     ]
-    data = self.group_statistics_data(
+    data = group_statistics_data(
         fields,
         group_kwargs,
         sort_keys=chart.sort_keys,
         top_max=chart.top_max,
         filters=filters,
+        model=apps.get_model(*chart.model.split('__')),
     )
-    return success_response(data)
+    return data
+
+
+@bsm_func(login_required=True, name='get_chart', model=Chart)
+def get_chart_func(user, id, **kwargs):
+    return success_response(get_chart(id))
 
 
 @bsm_func(

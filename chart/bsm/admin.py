@@ -15,3 +15,13 @@ from .. import models
 
 #     class Meta:
 #         model = models.ChartTemplate
+
+@register
+class StatisticAdmin(BSMAdmin):
+    filter = ['display_name', 'model']
+    display = ['display_name', 'model', 'field', 'method', 'prefix', 'postfix']
+    form_fields = ['display_name', 'model', 'field', 'method', 'prefix', 'postfix', {'name': 'parent', 'widget': 'Cascader'}]
+    inline_actions = ['edit', 'delete']
+
+    class Meta:
+        model = models.Statistic
