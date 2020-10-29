@@ -301,4 +301,9 @@ methods = {
 def statistic_resolver(block: Block):
     statistic = Statistic.objects.get(id=block.id)
     model = apps.get_model(*statistic.model.split('__'))
-    return model.objects.filter(*[s.build() for s in statistic.filters.all()]).all().aggregate(result=Coalesce(methods[statistic.method](statistic.field), 0))['result']
+    return {
+        'prefix': statistic.prefix,
+        'postfix': statistic.postfix,
+        'display_name': statistic.display_name,
+        'result': model.objects.filter(*[s.build() for s in statistic.filters.all()]).all().aggregate(result=Coalesce(methods[statistic.method](statistic.field), 0))['result'],
+    }
