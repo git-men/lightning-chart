@@ -40,38 +40,41 @@ from puzzle.models import Block
 #         verbose_name_plural = '维度模板'
 
 
+chart_fields = [
+    'id', 'template_name', 'name', 'model', 'sort_keys', 'top_max',
+    'metrics.id',
+    'metrics.chart',
+    'metrics.display_name',
+    'metrics.name',
+    'metrics.field',
+    'metrics.expression',
+    'metrics.method',
+    'metrics.format',
+    'metrics.geom',
+    'dimensions.id',
+    'dimensions.chart',
+    'dimensions.display_name',
+    'dimensions.name',
+    'dimensions.field',
+    'dimensions.expression',
+    'dimensions.method',
+    'chart_filters.id',
+    'chart_filters.chart',
+    'chart_filters.type',
+    'chart_filters.parent',
+    'chart_filters.field',
+    'chart_filters.operator',
+    'chart_filters.value',
+    'chart_filters.layer',
+]
+
+
 @component_resolver('Chart')
 def chart_resolver(block: Block):
     from chart.bsm.functions import get_chart
     if block.chart is None:
         return None
-    chart = Chart.objects.render_get([
-        'id', 'template_name', 'name', 'model', 'sort_keys', 'top_max',
-        'metrics.id',
-        'metrics.chart',
-        'metrics.display_name',
-        'metrics.name',
-        'metrics.field',
-        'metrics.expression',
-        'metrics.method',
-        'metrics.format',
-        'metrics.geom',
-        'dimensions.id',
-        'dimensions.chart',
-        'dimensions.display_name',
-        'dimensions.name',
-        'dimensions.field',
-        'dimensions.expression',
-        'dimensions.method',
-        'chart_filters.id',
-        'chart_filters.chart',
-        'chart_filters.type',
-        'chart_filters.parent',
-        'chart_filters.field',
-        'chart_filters.operator',
-        'chart_filters.value',
-        'chart_filters.layer',
-    ], id=block.chart.id)
+    chart = Chart.objects.render_get(chart_fields, id=block.chart.id)
     data = get_chart(block.chart.id)
     return {
         'chart': chart,
@@ -297,13 +300,89 @@ methods = {
 }
 
 
+def aggregate(model, filters, method, field):
+    model = apps.get_model(*model.split('__'))
+    return model.objects.filter(*filters).all().aggregate(result=Coalesce(methods[method](field), 0))['result'],
+
+
 @component_resolver('Statistic')
 def statistic_resolver(block: Block):
     statistic = Statistic.objects.get(id=block.id)
-    model = apps.get_model(*statistic.model.split('__'))
     return {
         'prefix': statistic.prefix,
         'postfix': statistic.postfix,
         'display_name': statistic.display_name,
-        'result': model.objects.filter(*[s.build() for s in statistic.filters.all()]).all().aggregate(result=Coalesce(methods[statistic.method](statistic.field), 0))['result'],
+        'result': aggregate(model=statistic.model, filters=[s.build() for s in statistic.filters.all()], method=statistic.method, field=statistic.field)
+    }
+
+
+class ChartCardMetric(models.Model):
+    display_name = models.CharField('名称', max_length=30)
+    method = models.CharField('聚合函数', max_length=20, choices=[
+        ['Sum', '累加'],
+        ['Count', '计数'],
+        ['Avg', '平均值'],
+        ['Max', '最大值'],
+        ['Min', '最小值'],
+    ])
+    prefix = models.CharField('前缀', max_length=10, default='', blank=True)
+    postfix = models.CharField('后缀', max_length=10, default='', blank=True)
+
+    class Meta:
+        verbose_name = '卡片统计指标'
+        verbose_name_plural = verbose_name
+
+
+class ChartCard(Block):
+    model = models.CharField('模型', max_length=200)
+    field = models.CharField('字段', max_length=100)
+    chart_style = models.CharField('图表样式', max_length=20)
+
+    main_chart = models.OneToOneField(Chart, verbose_name='主图表', on_delete=models.CASCADE)
+    primary_metric = models.OneToOneField(ChartCardMetric, verbose_name='主指标', on_delete=models.CASCADE, related_name='primary_cards')
+    secondary_metric = models.OneToOneField(ChartCardMetric, verbose_name='副指标', on_delete=models.CASCADE, related_name='secondary_cards', null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        self.component = 'ChartCard'
+        return super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = '统计卡片'
+        verbose_name_plural = verbose_name
+
+
+class ChartCardFilter(BaseFilter):
+    chard_card = models.ForeignKey(
+        ChartCard, on_delete=models.CASCADE, verbose_name='统计卡片', related_name='filters')
+
+    class Meta:
+        verbose_name = '查询条件'
+        verbose_name_plural = verbose_name
+
+
+@component_resolver('ChartCard')
+def statistic_resolver(block: Block):
+    card = ChartCard.objects.get(id=block.id)
+    m1 = card.primary_metric
+    m2 = card.secondary_metric
+
+    from chart.bsm.functions import get_chart
+    chart = Chart.objects.render_get(chart_fields, id=card.main_chart_id)
+    data = get_chart(card.main_chart_id)
+    filters = [s.build() for s in card.filters.all()]
+    return {
+        'chart': chart,
+        'data': data,
+        'primary_metric': {
+            'prefix': m1.prefix,
+            'postfix': m1.postfix,
+            'display_name': m1.display_name,
+            'result': aggregate(model=card.model, filters=filters, method=m1.method, field=card.field)
+        },
+        'secondary_metric': m2 and {
+            'prefix': m2.prefix,
+            'postfix': m2.postfix,
+            'display_name': m2.display_name,
+            'result': aggregate(model=card.model, filters=filters, method=m2.method, field=card.field)
+        },
     }
