@@ -298,6 +298,13 @@ methods = {
     'Max': Max,
     'Min': Min,
 }
+method_choices = {
+    'Sum': '累加',
+    'Count': '计数',
+    'Avg': '平均值',
+    'Max': '最大值',
+    'Min': '最小值',
+}
 
 
 def aggregate(model, filters, method, field):
@@ -318,13 +325,7 @@ def statistic_resolver(block: Block):
 
 class ChartCardMetric(models.Model):
     display_name = models.CharField('名称', max_length=30)
-    method = models.CharField('聚合函数', max_length=20, choices=[
-        ['Sum', '累加'],
-        ['Count', '计数'],
-        ['Avg', '平均值'],
-        ['Max', '最大值'],
-        ['Min', '最小值'],
-    ])
+    method = models.CharField('聚合函数', max_length=20, choices=method_choices.items())
     prefix = models.CharField('前缀', max_length=10, default='', blank=True)
     postfix = models.CharField('后缀', max_length=10, default='', blank=True)
 
@@ -334,11 +335,26 @@ class ChartCardMetric(models.Model):
 
 
 class ChartCard(Block):
+    STYLE_STATISTIC = 'statistic'
+    STYLE_LINE_FILL = 'lineFill'
+    STYLE_COLUMN_TREE = 'columnTree'
+    STYLE_PROGRESS_BAR = 'progressBar'
+
     model = models.CharField('模型', max_length=200)
     field = models.CharField('字段', max_length=100)
-    chart_style = models.CharField('图表样式', max_length=20)
+    help = models.CharField('提示信息', max_length=200, null=True)
 
-    main_chart = models.OneToOneField(Chart, verbose_name='主图表', on_delete=models.CASCADE)
+    style = models.CharField('图表样式', max_length=20, choices=[
+        [STYLE_STATISTIC, '数值样式'],
+        [STYLE_LINE_FILL, '曲线填充图'],
+        [STYLE_COLUMN_TREE, '柱形树状图'],
+        [STYLE_PROGRESS_BAR, '进度条'],
+    ])
+    chart_x = models.CharField('图表X轴', max_length=100, null=True, blank=True)
+    chart_y = models.CharField('图表Y轴', max_length=100, null=True, blank=True)
+    chart_x_method = models.CharField('图表X轴函数', max_length=20, null=True, blank=True)
+    chart_y_method = models.CharField('图表Y轴函数', max_length=20, choices=method_choices.items(), null=True, blank=True)
+
     primary_metric = models.OneToOneField(ChartCardMetric, verbose_name='主指标', on_delete=models.CASCADE, related_name='primary_cards')
     secondary_metric = models.OneToOneField(ChartCardMetric, verbose_name='副指标', on_delete=models.CASCADE, related_name='secondary_cards', null=True, blank=True)
 
@@ -366,23 +382,58 @@ def statistic_resolver(block: Block):
     m1 = card.primary_metric
     m2 = card.secondary_metric
 
-    from chart.bsm.functions import get_chart
-    chart = Chart.objects.render_get(chart_fields, id=card.main_chart_id)
-    data = get_chart(card.main_chart_id)
     filters = [s.build() for s in card.filters.all()]
+    model, field, style, help = card.model, card.field, card.style, card.help
+    chart_x, chart_x_method = card.chart_x, card.chart_x_method
+    chart_y, chart_y_method = card.chart_y, card.chart_y_method
+
+    from chart.bsm.functions import group_statistics_data, get_group_data
+
+    chart = None
+
+    if chart_x and chart_y:
+        group = {
+            'x': {
+                'field': chart_x,
+                'method': chart_x_method,
+            },
+        }
+        fields = {
+            'y': {
+                'field': chart_y,
+                'method': chart_y_method,
+            }
+        }
+
+        group_kwargs = get_group_data(group)
+        data = group_statistics_data(
+            fields,
+            group_kwargs,
+            filters=filters,
+            model=apps.get_model(*model.split('__')),
+        )
+        chart = {
+            'data': data,
+            'x': chart_x,
+            'y': chart_y,
+        }
+
     return {
+        'model': model,
+        'field': field,
+        'style': style,
+        'help': help,
         'chart': chart,
-        'data': data,
         'primary_metric': {
             'prefix': m1.prefix,
             'postfix': m1.postfix,
             'display_name': m1.display_name,
-            'result': aggregate(model=card.model, filters=filters, method=m1.method, field=card.field)
+            'result': aggregate(model=model, filters=filters, method=m1.method, field=field)
         },
         'secondary_metric': m2 and {
             'prefix': m2.prefix,
             'postfix': m2.postfix,
             'display_name': m2.display_name,
-            'result': aggregate(model=card.model, filters=filters, method=m2.method, field=card.field)
+            'result': aggregate(model=model, filters=filters, method=m2.method, field=field)
         },
     }
