@@ -350,10 +350,10 @@ class ChartCard(Block):
         [STYLE_COLUMN_TREE, '柱形树状图'],
         [STYLE_PROGRESS_BAR, '进度条'],
     ])
-    chart_x = models.CharField('图表X轴', max_length=100, null=True, blank=True)
-    chart_y = models.CharField('图表Y轴', max_length=100, null=True, blank=True)
-    chart_x_method = models.CharField('图表X轴函数', max_length=20, null=True, blank=True)
-    chart_y_method = models.CharField('图表Y轴函数', max_length=20, choices=method_choices.items(), null=True, blank=True)
+    chart_x = models.CharField('图表维度', max_length=100, null=True, blank=True)
+    # chart_y = models.CharField('图表Y轴', max_length=100, null=True, blank=True)
+    chart_x_method = models.CharField('图表维度函数', max_length=20, null=True, blank=True)
+    # chart_y_method = models.CharField('图表Y轴函数', max_length=20, choices=method_choices.items(), null=True, blank=True)
 
     primary_metric = models.OneToOneField(ChartCardMetric, verbose_name='主指标', on_delete=models.CASCADE, related_name='primary_cards')
     secondary_metric = models.OneToOneField(ChartCardMetric, verbose_name='副指标', on_delete=models.CASCADE, related_name='secondary_cards', null=True, blank=True)
@@ -385,7 +385,8 @@ def statistic_resolver(block: Block):
     filters = [s.build() for s in card.filters.all()]
     model, field, style, help = card.model, card.field, card.style, card.help
     chart_x, chart_x_method = card.chart_x, card.chart_x_method
-    chart_y, chart_y_method = card.chart_y, card.chart_y_method
+    # chart_y, chart_y_method = card.chart_y, card.chart_y_method
+    chart_y, chart_y_method = field, m1.method
 
     from chart.bsm.functions import group_statistics_data, get_group_data
 
