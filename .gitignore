@@ -1,8 +1,5 @@
 __pycache__
-scaffold/.env
-scaffold/xsettings.py
 *.sqlite3
-license*
 .python-version
 *.rdb
 *.pyc
