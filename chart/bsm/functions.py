@@ -132,10 +132,7 @@ def get_chart(id):
         }
         if dimension.method:
             field['method'] = dimension.method
-        if dimension.name == 'groupby':
-            group[dimension.name] = field
-        if dimension.name == 'legend':
-            group[dimension.name] = field
+        group[dimension.name] = field
 
     for metric in chart.metrics.all():
         field = {
