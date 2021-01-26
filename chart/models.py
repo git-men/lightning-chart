@@ -70,6 +70,7 @@ chart_fields = [
 
 
 @component_resolver('Chart')
+@component_resolver('Matrix')
 def chart_resolver(block: Block):
     from chart.bsm.functions import get_chart
     if block.chart is None:
