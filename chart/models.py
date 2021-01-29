@@ -66,6 +66,7 @@ chart_fields = [
     'chart_filters.operator',
     'chart_filters.value',
     'chart_filters.layer',
+    'form_filters.field',
 ]
 
 
@@ -161,6 +162,11 @@ class Chart(models.Model):
     #     Dimension.objects.bulk_create(create_list)
     #     Dimension.objects.bulk_update(update_list, fields=['field', 'method', 'display_name'])
     #     Dimension.objects.filter(id__in=[d.id for d in delete_list]).delete()
+
+
+class ChartFormFilter(models.Model):
+    chart = models.ForeignKey(Chart, on_delete=models.CASCADE, verbose_name='图表', related_name='form_filters')
+    field = models.CharField(verbose_name='字段', max_length=100)
 
 
 class Metric(models.Model):
