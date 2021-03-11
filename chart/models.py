@@ -1,9 +1,11 @@
+import jsonfield
 from django.db import models
 from django.apps import apps
-from django.db.models import Sum, Count, Avg, Max, Min
+from django.db.models import Sum, Count, Avg, Max, Min, Q
 from django.db.models.functions import Coalesce
 
-from api_basebone.core.fields import JSONField, BoneImageUrlField
+from api_basebone.core.fields import JSONField
+from api_basebone.utils.operators import build_filter_conditions2
 from api_basebone.utils.queryset import GManager
 from puzzle import component_resolver
 from puzzle.models import Block
@@ -237,10 +239,18 @@ class Dimension(models.Model):
 class BaseFilter(models.Model):
     field = models.CharField(verbose_name='字段', max_length=100)
     operator = models.CharField('条件判断符', max_length=20)
-    value = models.CharField('条件值', max_length=100)
+    _value_legacy = models.CharField('条件值（已弃用）', max_length=100, null=True, blank=True)
+    value = jsonfield.JSONField('条件值')
+
+    @property
+    def value_compat(self):
+        if self._value_legacy is not None:
+            # _value_legacy 原先不可为空，弃用之后才变成可为空的，空的情况就说明该用新字段了
+            return self._value_legacy
+        return self.value
 
     def build(self):
-        return {'field': self.field, 'operator': self.operator, 'value': self.value}
+        return {'field': self.field, 'operator': self.operator, 'value': self.value_compat}
 
     class Meta:
         abstract = True
@@ -316,7 +326,8 @@ method_choices = {
 
 def aggregate(model, filters, method, field):
     model = apps.get_model(*model.split('__'))
-    return model.objects.filter(*filters).all().aggregate(result=Coalesce(methods[method](field), 0))['result'],
+    q = build_filter_conditions2(filters) or Q()
+    return model.objects.filter(q).all().aggregate(result=Coalesce(methods[method](field), 0))['result'],
 
 
 @component_resolver('Statistic')

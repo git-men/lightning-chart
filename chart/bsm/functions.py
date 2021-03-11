@@ -145,10 +145,7 @@ def get_chart(id):
         fields[metric.name] = field
 
     group_kwargs = get_group_data(group)
-    filters = [
-        {'field': ft.field, 'operator': ft.operator, 'value': ft.value}
-        for ft in chart.chart_filters.all()
-    ]
+    filters = [ft.build() for ft in chart.chart_filters.all()]
     data = group_statistics_data(
         fields,
         group_kwargs,
