@@ -7,9 +7,9 @@ import django.db.models.deletion
 
 def delete_chart_templates(apps, schema_editor):
     MetricTemplate = apps.get_model("chart", "MetricTemplate")
-    MetricTemplate.objects.all().delete()
+    MetricTemplate.objects.using(schema_editor.connection.alias).all().delete()
     DimensionTemplate = apps.get_model("chart", "DimensionTemplate")
-    DimensionTemplate.objects.all().delete()
+    DimensionTemplate.objects.using(schema_editor.connection.alias).all().delete()
 
 
 class Migration(migrations.Migration):

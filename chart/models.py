@@ -5,6 +5,7 @@ from django.db.models import Sum, Count, Avg, Max, Min, Q
 from django.db.models.functions import Coalesce
 
 from api_basebone.core.fields import JSONField
+from api_basebone.services.expresstion import DbExpression
 from api_basebone.utils.operators import build_filter_conditions2
 from api_basebone.utils.queryset import GManager
 from puzzle import component_resolver
@@ -90,11 +91,17 @@ class Chart(models.Model):
     template_name = models.CharField('模板', max_length=100, null=True, blank=True)
     name = models.CharField(verbose_name='名称', max_length=200, default='')
     model = models.CharField(verbose_name='模型', max_length=200)
-    sort_keys = JSONField(verbose_name='排序字段', default=[])
+    sort_keys = JSONField(verbose_name='排序表达式', default=[])
     top_max = models.PositiveIntegerField('显示前几条', default=None, null=True)
     block = models.OneToOneField(Block, verbose_name='渲染结点', null=True, on_delete=models.CASCADE)
 
     objects = GManager()
+
+    expression = DbExpression()
+
+    @property
+    def order_by(self):
+        return list(map(self.expression.resolve, self.sort_keys))
     # def gen_by_args(self):
     #     self.gen_metrics()
     #     self.gen_dimensions()
@@ -168,7 +175,8 @@ class Chart(models.Model):
 
 class ChartFormFilter(models.Model):
     chart = models.ForeignKey(Chart, on_delete=models.CASCADE, verbose_name='图表', related_name='form_filters')
-    field = models.CharField(verbose_name='字段', max_length=100)
+    field = models.CharField(verbose_name='字段', max_length=100)  # 指标名或维度名
+    default = models.TextField('默认值的表达式')
 
 
 class Metric(models.Model):
@@ -178,8 +186,8 @@ class Metric(models.Model):
     display_name = models.CharField(verbose_name='指标名称', max_length=30)
     name = models.CharField(verbose_name='指标名', max_length=20)
     field = models.CharField(verbose_name='字段', max_length=100)
-    expression = models.CharField(
-        verbose_name='表达式', max_length=500, null=True, blank=True
+    expression = models.TextField(
+        verbose_name='表达式', null=True, blank=True
     )
     method = models.CharField(verbose_name='聚合函数', max_length=20, null=True, blank=True)
     format = models.CharField(verbose_name='格式', max_length=50, default='{}')
@@ -211,8 +219,8 @@ class Dimension(models.Model):
     display_name = models.CharField(verbose_name='维度名称', max_length=30)
     name = models.CharField(verbose_name='维度名', max_length=20)
     field = models.CharField(verbose_name='字段', max_length=100)
-    expression = models.CharField(
-        verbose_name='表达式', max_length=500, null=True, blank=True
+    expression = models.TextField(
+        verbose_name='表达式', null=True, blank=True
     )
     method = models.CharField(
         verbose_name='统计精度函数（当field类型时时间时会有）', max_length=20, blank=True, null=True

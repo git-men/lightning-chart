@@ -56,15 +56,15 @@ def group_statistics_data(fields, group_kwargs, model, *args, **kwargs):
     # 支持排序
     sort_keys = kwargs.get('sort_keys', [])
     top_max = kwargs.get('top_max', None)
-    SORT_ASCE = 'asce'
-    SORT_DESC = 'desc'
-    all_keys = list(fields.keys()) + list(group_kwargs.keys())
+    # SORT_ASCE = 'asce'
+    # SORT_DESC = 'desc'
+    # all_keys = list(fields.keys()) + list(group_kwargs.keys())
     if sort_keys:
-        import re
-
-        keys_set = set([re.sub(r'-', "", key) for key in sort_keys])
-        if not (keys_set & set(all_keys) == keys_set):
-            pass
+        # import re
+        #
+        # keys_set = set([re.sub(r'-', "", key) for key in sort_keys])
+        # if not (keys_set & set(all_keys) == keys_set):
+        #     pass
         result = result.order_by(*sort_keys)
     # 支持对聚合后的数据进行filter
     filters = kwargs.get('filters', [])
@@ -149,7 +149,7 @@ def get_chart(id):
     data = group_statistics_data(
         fields,
         group_kwargs,
-        sort_keys=chart.sort_keys,
+        sort_keys=chart.order_by,
         top_max=chart.top_max,
         filters=filters,
         model=apps.get_model(*chart.model.split('__')),
