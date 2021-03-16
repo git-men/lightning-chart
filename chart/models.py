@@ -177,7 +177,6 @@ class Chart(models.Model):
 class ChartFormFilter(models.Model):
     chart = models.ForeignKey(Chart, on_delete=models.CASCADE, verbose_name='图表', related_name='form_filters')
     field = models.CharField(verbose_name='字段', max_length=100)  # 指标名或维度名
-    default = models.TextField('默认值的表达式')
 
 
 class Metric(models.Model):
