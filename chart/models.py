@@ -75,6 +75,7 @@ chart_fields = [
 
 @component_resolver('Chart')
 @component_resolver('Matrix')
+@component_resolver('SummaryMatrix')
 @component_resolver('PaginationMatrix')
 def chart_resolver(block: Block):
     from chart.bsm.functions import get_chart
