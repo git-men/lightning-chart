@@ -46,11 +46,16 @@ def group_statistics_data(fields, group_kwargs, model, *args, **kwargs):
         **{
             key: methods[value.get('method', None)](
                 value['field'].replace('.', '__'),
-                distinct=value.get('distinct', False),
+                **{'distinct': value['distinct']} if 'distinct' in value else {}
             )
             for key, value in fields.items()
             # 排除exclude_fields
-            if value['field'] not in get_model_exclude_fields(model, None)
+            if 'field' in value and value['field'] not in get_model_exclude_fields(model, None)
+        },
+        **{
+            key: resolve_expression(value['expression'])
+            for key, value in fields.items()
+            if 'expression' in value
         }
     ).order_by(*group_kwargs.keys())
     # 支持排序
@@ -136,12 +141,16 @@ def get_chart(id):
 
     for metric in chart.metrics.all():
         field = {
-            'field': metric.field,
-            'method': metric.method,
-            'expression': metric.expression,
             'displayName': metric.display_name,
             'format': metric.format,
         }
+        if metric.expression is None:
+            field.update({
+                'field': metric.field,
+                'method': metric.method,
+            })
+        else:
+            field['expression'] = metric.expression
         fields[metric.name] = field
 
     group_kwargs = get_group_data(group)
