@@ -1,7 +1,7 @@
 import jsonfield
 from django.db import models
 from django.apps import apps
-from django.db.models import Sum, Count, Avg, Max, Min, Q
+from django.db.models import Sum, Count, Avg, Max, Min, Q, DecimalField, FloatField
 from django.db.models.functions import Coalesce
 
 from api_basebone.core.fields import JSONField
@@ -341,11 +341,30 @@ def aggregate(model, filters, method, field):
 @component_resolver('Statistic')
 def statistic_resolver(block: Block):
     statistic = Statistic.objects.get(id=block.id)
+    precision = 0
+
+    try:
+        next_field = None
+        model = apps.get_model(*statistic.model.split('__'))
+        for part in statistic.field.split('__')[:-1]:
+            next_field = model._meta.get_field(part).remote_field
+            model = next_field.model
+
+        final_field = model._meta.get_field(statistic.field.rsplit('__', 1)[-1])
+        if isinstance(final_field, DecimalField):
+            precision = final_field.decimal_places
+        elif isinstance(final_field, FloatField):
+            precision = 2
+    except:
+        import traceback
+        traceback.print_exc()
+
     return {
         'prefix': statistic.prefix,
         'postfix': statistic.postfix,
         'display_name': statistic.display_name,
-        'result': aggregate(model=statistic.model, filters=[s.build() for s in statistic.filters.all()], method=statistic.method, field=statistic.field)
+        'result': aggregate(model=statistic.model, filters=[s.build() for s in statistic.filters.all()], method=statistic.method, field=statistic.field),
+        'precision': precision,
     }
 
 
