@@ -280,6 +280,10 @@ class Filter(BaseFilter):
     )
     layer = models.IntegerField('嵌套层数', default=0)
 
+    def build(self):
+        return {'field': self.field, 'operator': self.operator, 'value': self.value_compat, 'children': [
+            child.build() for child in self.children.all()]}
+
     class Meta:
         verbose_name = '查询条件'
         verbose_name_plural = '查询条件'
