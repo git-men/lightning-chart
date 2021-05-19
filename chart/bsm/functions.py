@@ -1,6 +1,4 @@
 import logging
-import pytz
-from functools import partial
 
 from django.apps import apps
 from django.core.cache import cache
@@ -86,9 +84,9 @@ def group_statistics_data(fields, group_kwargs, model, *args, **kwargs):
 
 def get_group_data(group):
     group_functions = {
-        'TruncDay': partial(TruncDay, tzinfo=pytz.UTC),
-        'TruncMonth': partial(TruncMonth, tzinfo=pytz.UTC),
-        'TruncHour': partial(TruncHour, tzinfo=pytz.UTC),
+        'TruncDay': TruncDay,
+        'TruncMonth': TruncMonth,
+        'TruncHour': TruncHour,
         None: F,
     }
 
